@@ -4,162 +4,133 @@ const { Product } = require("../models/product");
 const { Category } = require("../models/category");
 const mongoose = require("mongoose");
 
-//  GET all products
-router.get(`/`, async (req, res) => {
-  //localhost:3000/api/v1/products?categories=2342342,234234
-  let filter = [];
-  if (req.query.categories) {
-    filter = {category: req.query.categories.split(",")};
+// GET all products with optional category filtering
+router.get("/", async (req, res) => {
+  try {
+    let filter = {};
+    if (req.query.categories) {
+      filter = { category: req.query.categories.split(",") };
+    }
+    const productList = await Product.find(filter).populate("category");
+    if (!productList || productList.length === 0) {
+      return res.status(404).json({ success: false, message: "No products found" });
+    }
+    res.status(200).json(productList);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
-
-  const productList = await Product.find({ category: filter }).populate(
-    "category"
-  ); //.select("name image -_id"); // .select gives the selected data which i asked from the schema
-
-  //catching errors
-  if (!productList) {
-    res.status(500).json({ success: false });
-  }
-
-  res.send(productList);
 });
 
 // GET a product by id
-router.get(`/:id`, async (req, res) => {
-  const product = await Product.findById(req.params.id).populate("category"); //Modify a query instance so that, when executed, it will populate child records for the specified collection, optionally filtering by subcriteria
-
-  if (!product) {
-    res.status(500).json({ success: false });
+router.get("/:id", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id).populate("category");
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+    res.status(200).json(product);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
-
-  res.send(product);
 });
 
 // CREATE a product
-router.post(`/`, async (req, res) => {
-  // to find category of the product with reference to category in API
-  const category = await Category.findById(req.body.category);
-  if (!category) return res.status(400).send("Invalid Category");
-
-  let product = new Product({
-    name: req.body.name,
-    description: req.body.description,
-    richDescription: req.body.richDescription,
-    image: req.body.image,
-    brand: req.body.brand,
-    price: req.body.price,
-    category: req.body.category,
-    countInStock: req.body.countInStock,
-    rating: req.body.rating,
-    numReviews: req.body.numReviews,
-    isFeatured: req.body.isFeatured,
-  });
-
-  product = await product.save();
-
-  if (!product) {
-    return res.status(500).send("The product cannot be created");
-  }
-  res.send(product);
-
-  // promise based code
-  // product
-  //   .save()
-  //   .then((createdProduct) => {
-  //     res.status(201).json(createdProduct);
-  //   })
-  //   .catch((err) => {
-  //     res.status(500).json({
-  //       error: err,
-  //       success: false,
-  //     });
-  //   });
-});
-
-// UPDATE product
-router.put("/:id", async (req, res) => {
-  if (!mongoose.isValidObjectId(req.params.id)) {
-    return res.status(400).send("Invalid Product Id");
-  }
-  // to validate the category below
-  const category = await Category.findById(req.body.category);
-  if (!category) return res.status(400).send("Invalid Category");
-
-  const product = await Product.findByIdAndUpdate(
-    req.params.id,
-    {
+router.post("/", async (req, res) => {
+  try {
+    const category = await Category.findById(req.body.category);
+    if (!category) return res.status(400).send("Invalid Category");
+    let product = new Product({
       name: req.body.name,
       description: req.body.description,
       richDescription: req.body.richDescription,
       image: req.body.image,
       brand: req.body.brand,
       price: req.body.price,
-      category: req.body.category, // category is validating here
+      category: req.body.category,
       countInStock: req.body.countInStock,
       rating: req.body.rating,
       numReviews: req.body.numReviews,
       isFeatured: req.body.isFeatured,
-    },
-    { new: true } // It means it will show the updated data not the old data
-  );
-
-  if (!product) return res.status(500).send("the product cannot be updated");
-
-  res.send(product);
+    });
+    product = await product.save();
+    if (!product) return res.status(500).send("The product cannot be created");
+    res.status(201).json(product);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-// DELETE a product
-router.delete("/:id", async (req, res) => {
+// UPDATE product
+router.put("/:id", async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).send("Invalid Product Id");
+    }
+    const category = await Category.findById(req.body.category);
+    if (!category) return res.status(400).send("Invalid Category");
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      {
+        name: req.body.name,
+        description: req.body.description,
+        richDescription: req.body.richDescription,
+        image: req.body.image,
+        brand: req.body.brand,
+        price: req.body.price,
+        category: req.body.category,
+        countInStock: req.body.countInStock,
+        rating: req.body.rating,
+        numReviews: req.body.numReviews,
+        isFeatured: req.body.isFeatured,
+      },
+      { new: true }
+    );
+    if (!product) return res.status(404).send("The product cannot be found or updated");
+    res.status(200).json(product);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE a product (promise style)
+router.delete("/:id", (req, res) => {
   Product.findByIdAndRemove(req.params.id)
     .then((product) => {
       if (product) {
-        return res
+        res
           .status(200)
-          .json({ success: true, message: "product is deleted successfully" });
+          .json({ success: true, message: "Product is deleted successfully", deletedId: req.params.id });
       } else {
-        return res
-          .status(404)
-          .json({ success: false, message: "product is not found" });
+        res.status(404).json({ success: false, message: "Product not found" });
       }
     })
     .catch((err) => {
-      return res.status(400).json({ success: false, error: err });
+      res.status(400).json({ success: false, error: err.message });
     });
 });
 
-// GET total count of product for Admin Panel
-router.get(`/get/count`, async (req, res) => {
+// GET total count of products
+router.get("/get/count", async (req, res) => {
   try {
     const productCount = await Product.countDocuments();
-
-    if (!productCount) {
-      res.status(500).json({ success: false });
-    }
-
-    res.send({ productCount: productCount });
+    res.send({ productCount });
   } catch (error) {
-    // Handle any errors that occur during the counting process
-    console.error(error);
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 });
 
-// GET featured product
-router.get(`/get/featured/:count`, async (req, res) => {
-  const count = req.params.count ? req.params.count : 0;
-  // try {
-  const products = await Product.find({ isFeatured: true }).limit(+count);
-
-  if (!products) {
-    res.status(500).json({ success: false });
+// GET featured products
+router.get("/get/featured/:count", async (req, res) => {
+  try {
+    const count = req.params.count ? parseInt(req.params.count) : 0;
+    const products = await Product.find({ isFeatured: true }).limit(count);
+    if (!products || products.length === 0) {
+      return res.status(404).json({ success: false, message: "No featured products found" });
+    }
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Internal Server Error" });
   }
-
-  res.send(products);
-  //  } catch (error) {
-  // Handle any errors that occur during the counting process
-  // console.error(error);
-  //  res.status(500).json({ success: false, error: "Internal Server Error" });
-  //}
 });
 
 module.exports = router;

@@ -4,6 +4,7 @@ const productSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    trim: true, // Removes extra spaces
   },
   description: {
     type: String,
@@ -68,4 +69,5 @@ productSchema.set("toJSON", {
   virtuals: true,
 });
 
+// Export the Product model
 exports.Product = mongoose.model("Product", productSchema);

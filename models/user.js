@@ -1,13 +1,16 @@
 const mongoose = require("mongoose");
 
-const userSchema = mongoose.Schema({
+const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    trim: true, // Remove extra spaces
   },
   email: {
     type: String,
     required: true,
+    unique: true, // Recommended for user login
+    lowercase: true, // Store emails in lowercase
   },
   passwordHash: {
     type: String,
@@ -23,24 +26,24 @@ const userSchema = mongoose.Schema({
   },
   street: {
     type: String,
-    default: '',
+    default: "",
   },
-  apartment:{
+  apartment: {
     type: String,
-    default: '',
+    default: "",
   },
-  zip:{
+  zip: {
     type: String,
-    default: '',
+    default: "",
   },
-  city:{
+  city: {
     type: String,
-    default: '',
+    default: "",
   },
-  country:{
+  country: {
     type: String,
-    default: '',
-  }
+    default: "",
+  },
 });
 
 // this code is used to convert _id in mongodb to id for friendly frontend development use
