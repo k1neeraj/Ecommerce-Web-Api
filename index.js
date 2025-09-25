@@ -30,10 +30,12 @@ const productsRoutes = require("./routes/products");
 const categoriesRoutes = require("./routes/categories");
 const usersRoutes = require("./routes/users");
 const ordersRoutes = require("./routes/orders");
+const authRoutes = require('./routes/auth');
 
 const api = process.env.API_URL || '/api/v1'; // Default fallback
 
 // API Routes
+app.use(`${api}/auth`, authRoutes);
 app.use(`${api}/categories`, categoriesRoutes);
 app.use(`${api}/products`, productsRoutes);
 app.use(`${api}/users`, usersRoutes);
